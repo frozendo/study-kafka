@@ -1,0 +1,65 @@
+version: "3.7"
+services: 
+
+  gondor:
+    build: zookeeper
+    hostname: gondor
+    container_name: gondor
+    environment:
+      SERVER_ID: 1
+
+  rohan:
+    build: zookeeper
+    hostname: rohan
+    container_name: rohan
+    environment:
+      SERVER_ID: 2
+
+  numenor:
+    build: zookeeper
+    hostname: numenor
+    container_name: numenor
+    environment:
+      SERVER_ID: 3
+
+  rivendell:
+    build: kafka
+    hostname: rivendell
+    container_name: rivendell
+    environment:
+      BROKER_ID: 1
+      BROKER_NAME: "rivendell"
+    ports: 
+      - "9091:9091"
+    depends_on:
+        - gondor
+        - rohan
+        - numenor
+
+  gondolin:
+    build: kafka
+    hostname: gondolin
+    container_name: gondolin
+    environment:
+      BROKER_ID: 2
+      BROKER_NAME: "gondolin"
+    ports: 
+      - "9092:9092"
+    depends_on:
+        - gondor
+        - rohan
+        - numenor
+
+  doriath:
+    build: kafka
+    hostname: doriath
+    container_name: doriath
+    environment:
+      BROKER_ID: 3
+      BROKER_NAME: "doriath"
+    ports: 
+      - "9093:9093"
+    depends_on:
+        - gondor
+        - rohan
+        - numenor

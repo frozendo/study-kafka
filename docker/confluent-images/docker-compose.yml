@@ -1,35 +1,61 @@
 ---
 version: '2'
 services:
-    zookeeper:
+    braavos:
         image: confluentinc/cp-zookeeper:5.5.4
-        hostname: zookeeper
-        container_name: zookeeper
+        hostname: braavos
+        container_name: braavos
         ports:
             - "2181:2181"
         environment:
+            ZOOKEEPER_SERVER_ID: 1
             ZOOKEEPER_CLIENT_PORT: 2181
             ZOOKEEPER_TICK_TIME: 2000
+            ZOOKEEPER_SERVERS: 'braavos:2888:3888;pentos:2888:3888;volantis:42888:43888'
+    pentos:
+        image: confluentinc/cp-zookeeper:5.5.4
+        hostname: pentos
+        container_name: pentos
+        ports:
+            - "2182:2181"
+        environment:
+            ZOOKEEPER_SERVER_ID: 2
+            ZOOKEEPER_CLIENT_PORT: 2181
+            ZOOKEEPER_TICK_TIME: 2000
+            ZOOKEEPER_SERVERS: 'braavos:2888:3888;pentos:2888:3888;volantis:42888:43888'
+    volantis:
+        image: confluentinc/cp-zookeeper:5.5.4
+        hostname: volantis
+        container_name: volantis
+        ports:
+            - "2183:2181"
+        environment:
+            ZOOKEEPER_SERVER_ID: 3
+            ZOOKEEPER_CLIENT_PORT: 2181
+            ZOOKEEPER_TICK_TIME: 2000
+            ZOOKEEPER_SERVERS: 'braavos:2888:3888;pentos:2888:3888;volantis:42888:43888'
 
     winterfell:
         image: confluentinc/cp-enterprise-kafka:5.5.4
         hostname: winterfell
         container_name: winterfell
         depends_on:
-            - zookeeper
+            - braavos
+            - pentos
+            - volantis
         ports:
             - "9092:9092"
             - "29092:29092"
         environment:
             KAFKA_BROKER_ID: 1
-            KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+            KAFKA_ZOOKEEPER_CONNECT: 'braavos:2181,pentos:2182,volantis:2183'
             KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
             KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://winterfell:9092,PLAINTEXT_HOST://localhost:29092
             KAFKA_METRIC_REPORTERS: io.confluent.metrics.reporter.ConfluentMetricsReporter
             KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
             KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
             CONFLUENT_METRICS_REPORTER_BOOTSTRAP_SERVERS: winterfell:9092
-            CONFLUENT_METRICS_REPORTER_ZOOKEEPER_CONNECT: zookeeper:2181
+            CONFLUENT_METRICS_REPORTER_ZOOKEEPER_CONNECT: braavos:2181,pentos:2182,volantis:2183
             CONFLUENT_METRICS_REPORTER_TOPIC_REPLICAS: 1
             CONFLUENT_METRICS_ENABLE: 'true'
             CONFLUENT_SUPPORT_CUSTOMER_ID: 'anonymous'
@@ -39,20 +65,47 @@ services:
         hostname: casterly-rock
         container_name: casterly-rock
         depends_on:
-            - zookeeper
+            - braavos
+            - pentos
+            - volantis
         ports:
             - "9093:9093"
             - "29093:29093"
         environment:
             KAFKA_BROKER_ID: 2
-            KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+            KAFKA_ZOOKEEPER_CONNECT: 'braavos:2181,pentos:2182,volantis:2183'
             KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
             KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://casterly-rock:9093,PLAINTEXT_HOST://localhost:29093
             KAFKA_METRIC_REPORTERS: io.confluent.metrics.reporter.ConfluentMetricsReporter
             KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
             KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
             CONFLUENT_METRICS_REPORTER_BOOTSTRAP_SERVERS: casterly-rock:9093
-            CONFLUENT_METRICS_REPORTER_ZOOKEEPER_CONNECT: zookeeper:2181
+            CONFLUENT_METRICS_REPORTER_ZOOKEEPER_CONNECT: braavos:2181,pentos:2182,volantis:2183
+            CONFLUENT_METRICS_REPORTER_TOPIC_REPLICAS: 1
+            CONFLUENT_METRICS_ENABLE: 'true'
+            CONFLUENT_SUPPORT_CUSTOMER_ID: 'anonymous'
+
+    riverrun:
+        image: confluentinc/cp-enterprise-kafka:5.5.4
+        hostname: riverrun
+        container_name: riverrun
+        depends_on:
+            - braavos
+            - pentos
+            - volantis
+        ports:
+            - "9094:9094"
+            - "29094:29094"
+        environment:
+            KAFKA_BROKER_ID: 3
+            KAFKA_ZOOKEEPER_CONNECT: 'braavos:2181,pentos:2182,volantis:2183'
+            KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+            KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://riverrun:9094,PLAINTEXT_HOST://localhost:29094
+            KAFKA_METRIC_REPORTERS: io.confluent.metrics.reporter.ConfluentMetricsReporter
+            KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+            KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+            CONFLUENT_METRICS_REPORTER_BOOTSTRAP_SERVERS: riverrun:9094
+            CONFLUENT_METRICS_REPORTER_ZOOKEEPER_CONNECT: braavos:2181,pentos:2182,volantis:2183
             CONFLUENT_METRICS_REPORTER_TOPIC_REPLICAS: 1
             CONFLUENT_METRICS_ENABLE: 'true'
             CONFLUENT_SUPPORT_CUSTOMER_ID: 'anonymous'
@@ -62,10 +115,11 @@ services:
         hostname: schema-registry
         container_name: schema-registry
         depends_on:
-            - zookeeper
-            - winterfell
+            - braavos
+            - pentos
+            - volantis
         ports:
             - "8081:8081"
         environment:
             SCHEMA_REGISTRY_HOST_NAME: schema-registry
-            SCHEMA_REGISTRY_KAFKASTORE_CONNECTION_URL: 'zookeeper:2181'
+            SCHEMA_REGISTRY_KAFKASTORE_CONNECTION_URL: 'braavos:2181,pentos:2182,volantis:2183'

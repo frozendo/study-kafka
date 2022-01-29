@@ -2,34 +2,31 @@ version: "3.7"
 services: 
 
   gondor:
-    image: zookeeper
-    restart: always
+    build: zookeeper
     hostname: gondor
+    container_name: gondor
     ports:
-      - 2181:2181
+        - "2181:2181"
     environment:
-      ZOO_MY_ID: 1
-      ZOO_SERVERS: server.1=gondor:2888:3888;2181 server.2=rohan:2888:3888;2181 server.3=numenor:2888:3888;2181
+      SERVER_ID: 1
 
   rohan:
-    image: zookeeper
-    restart: always
+    build: zookeeper
     hostname: rohan
+    container_name: rohan
     ports:
-      - 2182:2181
+        - "2182:2181"
     environment:
-      ZOO_MY_ID: 2
-      ZOO_SERVERS: server.1=gondor:2888:3888;2181 server.2=rohan:2888:3888;2181 server.3=numenor:2888:3888;2181
+      SERVER_ID: 2
 
   numenor:
-    image: zookeeper
-    restart: always
+    build: zookeeper
     hostname: numenor
+    container_name: numenor
     ports:
-      - 2183:2181
+        - "2183:2181"
     environment:
-      ZOO_MY_ID: 3
-      ZOO_SERVERS: server.1=gondor:2888:3888;2181 server.2=rohan:2888:3888;2181 server.3=numenor:2888:3888;2181
+      SERVER_ID: 3
 
   rivendell:
     build: kafka

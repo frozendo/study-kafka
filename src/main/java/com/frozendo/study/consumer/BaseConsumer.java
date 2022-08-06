@@ -1,4 +1,4 @@
-package com.frozendo.study.Consumer;
+package com.frozendo.study.consumer;
 
 public abstract class BaseConsumer {
 

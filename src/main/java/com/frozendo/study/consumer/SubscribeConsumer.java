@@ -1,4 +1,4 @@
-package com.frozendo.study.Consumer;
+package com.frozendo.study.consumer;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
@@ -32,17 +32,28 @@ public class SubscribeConsumer extends BaseConsumer {
         try (var consumer = new KafkaConsumer<String, String>(properties)) {
             consumer.subscribe(List.of(TopicName.ROUND_ROBIN_TOPIC.getName()));
 
-            while (true) {
+            var noMessageCount = 0;
+            var consumerRunning = true;
+
+            while (consumerRunning) {
                 var listRecords = consumer.poll(Duration.ofSeconds(10));
 
-                for (var record : listRecords) {
-                    logger.info("consumer number {}, reading partition {} and offset {}",
-                            this.consumerNumber, record.partition(), record.offset());
+                if (listRecords.isEmpty()) {
+                    noMessageCount++;
+                } else {
+                    noMessageCount = 0;
+                }
 
-                    var product = mapper.readValue(record.value(), Product.class);
+                for (var messageRecord : listRecords) {
+                    logger.info("consumer number {}, reading partition {} and offset {}",
+                            this.consumerNumber, messageRecord.partition(), messageRecord.offset());
+
+                    var product = mapper.readValue(messageRecord.value(), Product.class);
 
                     logger.info("Product - {}", product);
                 }
+
+                consumerRunning = noMessageCount < 5;
             }
         } catch (JsonMappingException e) {
             logger.error("Error to parse json - {}", e.getMessage());

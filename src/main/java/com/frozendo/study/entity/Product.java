@@ -1,5 +1,6 @@
 package com.frozendo.study.entity;
 
 public record Product(String code,
-                      String name) {
+                      String name,
+                      String department) {
 }

@@ -1,4 +1,4 @@
-package com.frozendo.study.Consumer;
+package com.frozendo.study.consumer;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
@@ -12,7 +12,6 @@ import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
 import java.util.List;
-import java.util.Objects;
 
 public class ManualCommitConsumer extends BaseConsumer implements Runnable {
 
@@ -21,15 +20,13 @@ public class ManualCommitConsumer extends BaseConsumer implements Runnable {
     public static final String GROUP_NAME = "key-hash-with-manual-commit-group";
 
     public static void main(String[] args) {
-        var consumerQtd = 1;
-        if (Objects.nonNull(args) && args.length > 0) {
-            consumerQtd = Integer.parseInt(args[0]);
-        }
-        for (int i = 1; i <= consumerQtd; i++) {
+        var count = 1;
+        while (count <= 3) {
             var consumerInstance = new ManualCommitConsumer();
-            consumerInstance.setConsumerNumber(i);
+            consumerInstance.setConsumerNumber(count);
             var thread = new Thread(consumerInstance);
             thread.start();
+            count++;
         }
     }
 
@@ -41,14 +38,23 @@ public class ManualCommitConsumer extends BaseConsumer implements Runnable {
         try (var consumer = new KafkaConsumer<String, String>(properties)) {
             consumer.subscribe(List.of(TopicName.KEY_HASH_MANUAL_COMMIT_TOPIC.getName()));
 
-            while (true) {
-                var listRecords = consumer.poll(Duration.ofSeconds(10));
+            var noMessageCount = 0;
+            var consumerRunning = true;
 
-                for (var record : listRecords) {
+            while (consumerRunning) {
+                var listRecords = consumer.poll(Duration.ofSeconds(30));
+
+                if (listRecords.isEmpty()) {
+                    noMessageCount++;
+                } else {
+                    noMessageCount = 0;
+                }
+
+                for (var messageRecord : listRecords) {
                     logger.info("consumer number {}, reading partition {} and offset {}",
-                            this.consumerNumber, record.partition(), record.offset());
+                            this.consumerNumber, messageRecord.partition(), messageRecord.offset());
 
-                    var product = mapper.readValue(record.value(), Product.class);
+                    var product = mapper.readValue(messageRecord.value(), Product.class);
 
                     logger.info("Product - {}", product);
                 }
@@ -56,6 +62,8 @@ public class ManualCommitConsumer extends BaseConsumer implements Runnable {
                     consumer.commitSync();
                     logger.info("commit execute with success!");
                 }
+
+                consumerRunning = noMessageCount < 5;
             }
         } catch (JsonMappingException e) {
             logger.error("Error to parse json - {}", e.getMessage());

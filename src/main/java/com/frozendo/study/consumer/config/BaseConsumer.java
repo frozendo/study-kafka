@@ -1,4 +1,4 @@
-package com.frozendo.study.consumer;
+package com.frozendo.study.consumer.config;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
@@ -35,7 +35,7 @@ public abstract class BaseConsumer<K, V> implements Runnable {
         return new KafkaConsumer<>(getProperties());
     }
 
-    protected void initConsumer(int consumerNumber, String groupName) {
+    public void initConsumer(int consumerNumber, String groupName) {
         this.consumerNumber = consumerNumber;
         this.groupName = groupName;
         var thread = new Thread(this);

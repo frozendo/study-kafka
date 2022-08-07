@@ -2,6 +2,7 @@ package com.frozendo.study.consumer;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.frozendo.study.common.TopicName;
+import com.frozendo.study.consumer.config.BaseConsumer;
 import com.frozendo.study.entity.Product;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.KafkaConsumer;

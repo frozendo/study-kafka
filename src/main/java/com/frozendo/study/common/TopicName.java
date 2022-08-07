@@ -5,7 +5,9 @@ public enum TopicName {
     ROUND_ROBIN_TOPIC("round-robin-topic-example"),
     KEY_HASH_MANUAL_COMMIT_TOPIC("key-hash-with-manual-commit-example"),
     PARTITION_DIRECT_SEND_TOPIC("partition-direct-send-example"),
-    CUSTOM_PARTITIONER_ASYNC_TOPIC("custom-partitioner-async-example");
+    CUSTOM_PARTITIONER_ASYNC_TOPIC("custom-partitioner-async-example"),
+    ASYNC_SEND_TOPIC("async-send-example"),
+    CUSTOM_SERIALIZER_TOPIC("custom-serializer-example");
 
     private String name;
 

@@ -1,4 +1,4 @@
-package com.frozendo.study.producer;
+package com.frozendo.study.producer.config;
 
 import org.apache.kafka.clients.producer.Partitioner;
 import org.apache.kafka.common.Cluster;
@@ -7,19 +7,21 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 
-public class CustomPartitioner implements Partitioner {
+public class ProductDepartmentPartitioner implements Partitioner {
 
-    final Logger logger = LoggerFactory.getLogger(CustomPartitioner.class);
+    final Logger logger = LoggerFactory.getLogger(ProductDepartmentPartitioner.class);
 
     @Override
     public int partition(String topic, Object key, byte[] keyBytes, Object value, byte[] valueBytes, Cluster cluster) {
         var keyValue = (String) key;
-        return switch (keyValue) {
+        var partitionValue = switch (keyValue) {
             case "Electronic" -> 0;
             case "Furniture" -> 1;
             case "Home Appliance" -> 2;
             default -> 3;
         };
+        logger.info("Send message to partition {}", partitionValue);
+        return partitionValue;
     }
 
     @Override

@@ -36,7 +36,7 @@ public class ManualCommitConsumer extends BaseConsumer implements Runnable {
         var mapper = new ObjectMapper();
 
         try (var consumer = new KafkaConsumer<String, String>(properties)) {
-            consumer.subscribe(List.of(TopicName.KEY_HASH_MANUAL_COMMIT_TOPIC.getName()));
+            consumer.subscribe(List.of(TopicName.KEY_HASH_TOPIC.getName()));
 
             var noMessageCount = 0;
             var consumerRunning = true;

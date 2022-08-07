@@ -1,4 +1,4 @@
-package com.frozendo.study.producer;
+package com.frozendo.study.producer.config;
 
 import com.frozendo.study.common.KafkaProperties;
 import org.apache.kafka.clients.admin.Admin;

@@ -1,69 +1,33 @@
 package com.frozendo.study.producer;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.frozendo.study.common.KafkaProperties;
 import com.frozendo.study.common.TopicName;
-import com.frozendo.study.source.ProductSource;
+import com.frozendo.study.entity.Product;
+import com.frozendo.study.producer.config.BaseProducer;
+import com.frozendo.study.producer.config.ProducerAsyncCallback;
 import org.apache.kafka.clients.producer.Callback;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import java.time.Duration;
-import java.time.LocalTime;
-import java.util.concurrent.ExecutionException;
-
-public class AsyncSendProducer {
-
-    final Logger logger = LoggerFactory.getLogger(AsyncSendProducer.class);
+public class AsyncSendProducer extends BaseProducer<String, String> {
 
     private final Callback callback = new ProducerAsyncCallback();
 
-    public static void main(String[] args) {
-        var roundRobinProducer = new AsyncSendProducer();
-        roundRobinProducer.executeProducer();
+    public static void main(String[] args) throws InterruptedException {
+        var asyncSendProducer = new AsyncSendProducer();
+        asyncSendProducer.executeProducer();
     }
 
-    private void executeProducer() {
-        final var properties = KafkaProperties.getProducerDefaultProperties();
-        CreateTopics.createTopic(TopicName.ASYNC_SEND_TOPIC.getName());
-
-        try (var producer = new KafkaProducer<String, String>(properties)) {
-            this.producerLoop(producer);
-        } catch (ExecutionException | InterruptedException ex) {
-            logger.error("Error to get record metadata - {}", ex.getMessage());
-        } catch (JsonProcessingException e) {
-            logger.error("Error when parse object to json - {}", e.getMessage());
-        } catch (Exception e) {
-            logger.error("Generic error - {}", e.getMessage());
-        }
+    @Override
+    protected String getTopicName() {
+        return TopicName.ASYNC_SEND_TOPIC.getName();
     }
 
-    private void producerLoop(KafkaProducer<String, String> producer) throws JsonProcessingException, ExecutionException, InterruptedException {
-        var initTime = LocalTime.now();
-        var stopExecution = false;
+    @Override
+    protected void sendMessage(KafkaProducer<String, String> kafkaProducer, Product product) throws JsonProcessingException {
+        var json = mapper.writeValueAsString(product);
+        var productRecord = new ProducerRecord<>(TopicName.ASYNC_SEND_TOPIC.getName(), product.code(), json);
 
-        while(!stopExecution) {
-            this.buildAndSendMessage(producer);
-
-            Thread.sleep(20000);
-
-            var duration = Duration.between(initTime, LocalTime.now());
-            stopExecution = duration.getSeconds() > 300;
-
-        }
-    }
-
-    private void buildAndSendMessage(KafkaProducer<String, String> producer) throws JsonProcessingException, ExecutionException, InterruptedException {
-        var mapper = new ObjectMapper();
-        for (int i = 0; i < 1_000; i++) {
-            var product = ProductSource.getProduct();
-            var json = mapper.writeValueAsString(product);
-            var productRecord = new ProducerRecord<>(TopicName.ASYNC_SEND_TOPIC.getName(), product.code(), json);
-
-            producer.send(productRecord, callback);
-        }
+        kafkaProducer.send(productRecord, callback);
     }
 }

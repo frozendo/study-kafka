@@ -1,80 +1,46 @@
 package com.frozendo.study.producer;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.frozendo.study.common.KafkaProperties;
 import com.frozendo.study.common.TopicName;
 import com.frozendo.study.entity.Product;
-import com.frozendo.study.source.ProductSource;
+import com.frozendo.study.producer.config.BaseProducer;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.time.Duration;
-import java.time.LocalTime;
 import java.util.concurrent.ExecutionException;
 
-public class PartitionDirectSendProducer  {
+public class PartitionDirectSendProducer extends BaseProducer<String, String> {
+
+    private int partitionCount = -1;
 
     final Logger logger = LoggerFactory.getLogger(PartitionDirectSendProducer.class);
 
-    public static void main(String[] args) {
-        var roundRobinProducer = new PartitionDirectSendProducer();
-        roundRobinProducer.executeProducer();
+    public static void main(String[] args) throws InterruptedException {
+        var partitionDirectSendProducer = new PartitionDirectSendProducer();
+        partitionDirectSendProducer.executeProducer();
     }
 
-    private void executeProducer() {
-        final var properties = KafkaProperties.getProducerDefaultProperties();
-        CreateTopics.createTopic(TopicName.PARTITION_DIRECT_SEND_TOPIC.getName());
-
-        try (var producer = new KafkaProducer<String, String>(properties)) {
-            this.producerLoop(producer);
-        } catch (ExecutionException | InterruptedException ex) {
-            logger.error("Error to get record metadata - {}", ex.getMessage());
-        } catch (JsonProcessingException e) {
-            logger.error("Error when parse object to json - {}", e.getMessage());
-        } catch (Exception e) {
-            logger.error("Generic error - {}", e.getMessage());
-        }
+    @Override
+    protected String getTopicName() {
+        return TopicName.PARTITION_DIRECT_SEND_TOPIC.getName();
     }
 
-    private void producerLoop(KafkaProducer<String, String> producer) throws JsonProcessingException, ExecutionException, InterruptedException {
-        var initTime = LocalTime.now();
-        var stopExecution = false;
+    @Override
+    protected void sendMessage(KafkaProducer<String, String> kafkaProducer, Product product) throws JsonProcessingException, ExecutionException, InterruptedException {
+        var json = mapper.writeValueAsString(product);
 
-        while(!stopExecution) {
-            this.buildAndSendMessage(producer);
+        var productRecord = new ProducerRecord<>(TopicName.PARTITION_DIRECT_SEND_TOPIC.getName(),
+                getPartition(), product.code(), json);
 
-            Thread.sleep(20000);
-
-            var duration = Duration.between(initTime, LocalTime.now());
-            stopExecution = duration.getSeconds() > 300;
-
-        }
+        var metadata = kafkaProducer.send(productRecord).get();
+        logger.info("sent to topic {} and partition {}, with key {}, offset {} and timestamp {}",
+                metadata.topic(), metadata.partition(), product.code(), metadata.offset(), metadata.timestamp());
     }
 
-    private void buildAndSendMessage(KafkaProducer<String, String> producer) throws JsonProcessingException, ExecutionException, InterruptedException {
-        var mapper = new ObjectMapper();
-        for (int i = 0; i < 1_000; i++) {
-            var product = ProductSource.getProduct();
-            var json = mapper.writeValueAsString(product);
-
-            var productRecord = new ProducerRecord<>(TopicName.PARTITION_DIRECT_SEND_TOPIC.getName(),
-                    getPartition(product), product.code(), json);
-
-            var metadata = producer.send(productRecord).get();
-            logger.info("sent to topic {} and partition {}, with key {}, offset {} and timestamp {}",
-                    metadata.topic(), metadata.partition(), product.code(), metadata.offset(), metadata.timestamp());
-        }
-    }
-
-    private int getPartition(Product product) {
-        return switch (product.department()) {
-            case "Electronic" -> 0;
-            case "Furniture" -> 1;
-            case "Home Appliance" -> 2;
-            default -> 3;
-        };
+    private int getPartition() {
+        partitionCount = partitionCount >= 2 ? 0 : partitionCount + 1;
+        return partitionCount;
     }
 }

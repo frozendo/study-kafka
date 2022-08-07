@@ -1,4 +1,4 @@
-package com.frozendo.study.producer;
+package com.frozendo.study.producer.config;
 
 import org.apache.kafka.clients.producer.Callback;
 import org.apache.kafka.clients.producer.RecordMetadata;

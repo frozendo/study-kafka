@@ -1,70 +1,48 @@
 package com.frozendo.study.producer;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.frozendo.study.common.KafkaProperties;
 import com.frozendo.study.common.TopicName;
 import com.frozendo.study.entity.Product;
-import com.frozendo.study.source.ProductSource;
+import com.frozendo.study.producer.config.Base64Serializer;
+import com.frozendo.study.producer.config.BaseProducer;
+import com.frozendo.study.producer.config.ProducerAsyncCallback;
 import org.apache.kafka.clients.producer.Callback;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import java.time.Duration;
-import java.time.LocalTime;
-import java.util.concurrent.ExecutionException;
+import java.util.Properties;
 
-public class CustomSerializerProducer {
-
-    final Logger logger = LoggerFactory.getLogger(CustomSerializerProducer.class);
+public class CustomSerializerProducer extends BaseProducer<String, Product> {
 
     private final Callback callback = new ProducerAsyncCallback();
 
-    public static void main(String[] args) {
-        var roundRobinProducer = new CustomSerializerProducer();
-        roundRobinProducer.executeProducer();
+    public static void main(String[] args) throws InterruptedException {
+        var customSerializerProducer = new CustomSerializerProducer();
+        customSerializerProducer.executeProducer();
     }
 
-    private void executeProducer() {
-        final var properties = KafkaProperties.getProducerDefaultProperties();
+    @Override
+    protected Properties getProperties() {
+        var properties = KafkaProperties.getProducerDefaultProperties();
         properties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, Base64Serializer.class);
-        CreateTopics.createTopic(TopicName.CUSTOM_SERIALIZER_TOPIC.getName());
-
-        try (var producer = new KafkaProducer<String, Product>(properties)) {
-            this.producerLoop(producer);
-        } catch (ExecutionException | InterruptedException ex) {
-            logger.error("Error to get record metadata - {}", ex.getMessage());
-        } catch (JsonProcessingException e) {
-            logger.error("Error when parse object to json - {}", e.getMessage());
-        } catch (Exception e) {
-            logger.error("Generic error - {}", e.getMessage());
-        }
+        return properties;
     }
 
-    private void producerLoop(KafkaProducer<String, Product> producer) throws JsonProcessingException, ExecutionException, InterruptedException {
-        var initTime = LocalTime.now();
-        var stopExecution = false;
-
-        while(!stopExecution) {
-            this.buildAndSendMessage(producer);
-
-            Thread.sleep(20000);
-
-            var duration = Duration.between(initTime, LocalTime.now());
-            stopExecution = duration.getSeconds() > 300;
-
-        }
+    @Override
+    protected String getTopicName() {
+        return TopicName.CUSTOM_SERIALIZER_TOPIC.getName();
     }
 
-    private void buildAndSendMessage(KafkaProducer<String, Product> producer) throws JsonProcessingException, ExecutionException, InterruptedException {
-        for (int i = 0; i < 1_000; i++) {
-            var product = ProductSource.getProduct();
-            var productRecord = new ProducerRecord<>(TopicName.CUSTOM_SERIALIZER_TOPIC.getName(), product.code(), product);
+    @Override
+    protected void sendMessage(KafkaProducer<String, Product> kafkaProducer, Product product)  {
+        var productRecord = new ProducerRecord<>(TopicName.CUSTOM_SERIALIZER_TOPIC.getName(), product.code(), product);
 
-            producer.send(productRecord, callback);
-        }
+        kafkaProducer.send(productRecord, callback);
+    }
+
+    @Override
+    protected KafkaProducer<String, Product> getKafkaProducer() {
+        return new KafkaProducer<>(getProperties());
     }
 }

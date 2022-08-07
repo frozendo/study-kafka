@@ -36,7 +36,7 @@ public class ManualAsyncCommitConsumer extends BaseConsumer implements Runnable 
         var mapper = new ObjectMapper();
 
         try (var consumer = new KafkaConsumer<String, String>(properties)) {
-            consumer.subscribe(List.of(TopicName.CUSTOM_PARTITIONER_ASYNC_TOPIC.getName()));
+            consumer.subscribe(List.of(TopicName.CUSTOM_PARTITIONER_TOPIC.getName()));
 
             var noMessageCount = 0;
             var consumerRunning = true;

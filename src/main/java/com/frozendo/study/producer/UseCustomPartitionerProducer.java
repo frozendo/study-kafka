@@ -6,6 +6,7 @@ import com.frozendo.study.common.KafkaProperties;
 import com.frozendo.study.common.TopicName;
 import com.frozendo.study.source.ProductSource;
 import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,18 +15,19 @@ import java.time.Duration;
 import java.time.LocalTime;
 import java.util.concurrent.ExecutionException;
 
-public class RoundRobinProducer {
+public class UseCustomPartitionerProducer {
 
-    final Logger logger = LoggerFactory.getLogger(RoundRobinProducer.class);
+    final Logger logger = LoggerFactory.getLogger(UseCustomPartitionerProducer.class);
 
     public static void main(String[] args) {
-        var roundRobinProducer = new RoundRobinProducer();
+        var roundRobinProducer = new UseCustomPartitionerProducer();
         roundRobinProducer.executeProducer();
     }
 
     private void executeProducer() {
         final var properties = KafkaProperties.getProducerDefaultProperties();
-        CreateTopics.createTopic(TopicName.ROUND_ROBIN_TOPIC.getName());
+        properties.put(ProducerConfig.PARTITIONER_CLASS_CONFIG, CustomPartitioner.class);
+        CreateTopics.createTopic(TopicName.CUSTOM_PARTITIONER_ASYNC_TOPIC.getName());
 
         try (var producer = new KafkaProducer<String, String>(properties)) {
             this.producerLoop(producer);
@@ -58,7 +60,7 @@ public class RoundRobinProducer {
         for (int i = 0; i < 1_000; i++) {
             var product = ProductSource.getProduct();
             var json = mapper.writeValueAsString(product);
-            var productRecord = new ProducerRecord<String, String>(TopicName.ROUND_ROBIN_TOPIC.getName(), json);
+            var productRecord = new ProducerRecord<>(TopicName.CUSTOM_PARTITIONER_ASYNC_TOPIC.getName(), product.department(), json);
 
             var metadata = producer.send(productRecord).get();
             logger.info("sent to topic {} and partition {}, with offset {} and timestamp {}",
